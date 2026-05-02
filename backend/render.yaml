@@ -5,7 +5,6 @@ services:
     env: python
     region: singapore
     plan: free
-    rootDir: backend
     buildCommand: "./build.sh"
     startCommand: "daphne -b 0.0.0.0 -p 10000 backend.asgi:application"
     healthCheckPath: /api/devices/statistics_all/
