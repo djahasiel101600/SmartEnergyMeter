@@ -1,0 +1,25 @@
+# PlatformIO
+.pio/
+.vscode/
+.pioenvs/
+.piolibdeps/
+
+# Build files
+*.o
+*.a
+*.elf
+*.bin
+*.hex
+
+# IDE
+.idea/
+*.swp
+
+# Environment
+.env
+credentials.h
+config.h
+
+# OS
+.DS_Store
+Thumbs.db
