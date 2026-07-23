@@ -1,7 +1,23 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import type { WSMessage } from '../types'
 
-const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws/energy/'
+function resolveWebSocketUrl(): string {
+  const configured = (import.meta.env.VITE_WS_URL as string | undefined)?.trim()
+  const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws'
+
+  if (configured) {
+    if (configured.startsWith('ws://') || configured.startsWith('wss://')) {
+      return configured
+    }
+    if (configured.startsWith('/')) {
+      return `${protocol}://${window.location.host}${configured}`
+    }
+  }
+
+  return `${protocol}://${window.location.host}/ws/energy/`
+}
+
+const WS_URL = resolveWebSocketUrl()
 
 interface UseWebSocketOptions {
   onMessage?: (message: WSMessage) => void

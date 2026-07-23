@@ -215,8 +215,24 @@ export function Dashboard() {
       prevSelectedDeviceIdRef.current = selectedDevice.id;
       if (idChanged) {
         // Only wipe live data and chart history when switching to a different device
-        setPowerHistory([]);
         setLiveData(null);
+        // Seed chart history from recent API readings so charts aren't blank on load
+        api.getDeviceReadings(selectedDevice.id, 1).then((readings) => {
+          const sorted = [...readings].reverse(); // API returns newest-first; chart needs oldest-first
+          const seeded = sorted.slice(-60).map((r) => ({
+            time: new Date(r.timestamp).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit",
+            }),
+            power: r.power,
+            voltage: r.voltage,
+            current: r.current,
+          }));
+          setPowerHistory(seeded);
+        }).catch(() => {
+          setPowerHistory([]);
+        });
       }
       loadAllAnalytics();
     }

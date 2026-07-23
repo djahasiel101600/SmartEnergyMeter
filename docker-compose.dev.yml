@@ -17,7 +17,7 @@ services:
       DEBUG: "True"
       CORS_ALLOW_ALL_ORIGINS: "True"
     ports:
-      - "8000:8000"
+      - "${BACKEND_PORT:-8002}:8000"
 
   # ── Frontend: Vite dev server with HMR ────────────────────────────────────
   frontend:
@@ -29,9 +29,9 @@ services:
       - ./frontend:/app
       - /app/node_modules  # anonymous volume so host node_modules don't shadow
     ports:
-      - "5173:5173"
+      - "${FRONTEND_DEV_PORT:-5173}:5173"
     environment:
-      VITE_API_URL: http://localhost:8000/api
-      VITE_WS_URL: ws://localhost:8000/ws/energy/
+      VITE_API_URL: http://localhost:${BACKEND_PORT:-8002}/api
+      VITE_WS_URL: ws://localhost:${BACKEND_PORT:-8002}/ws/energy/
     depends_on:
       - backend

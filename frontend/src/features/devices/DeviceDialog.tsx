@@ -29,6 +29,11 @@ export function DeviceDialog({
   const [loading, setLoading] = useState(false);
   const [setupStep, setSetupStep] = useState(false);
   const [generatedDevice, setGeneratedDevice] = useState<Device | null>(null);
+  const [refreshOnClose, setRefreshOnClose] = useState(false);
+  const [showToken, setShowToken] = useState(false);
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">(
+    "idle",
+  );
   const [formData, setFormData] = useState({
     name: "",
     firmware_version: "",
@@ -51,6 +56,38 @@ export function DeviceDialog({
     }
   }, [device, open]);
 
+  useEffect(() => {
+    if (!open) {
+      setSetupStep(false);
+      setGeneratedDevice(null);
+      setRefreshOnClose(false);
+      setShowToken(false);
+      setCopyStatus("idle");
+    }
+  }, [open]);
+
+  const currentToken = generatedDevice?.token || device?.token || "";
+
+  const handleCopyToken = async () => {
+    if (!currentToken) return;
+    try {
+      await navigator.clipboard.writeText(currentToken);
+      setCopyStatus("copied");
+      setTimeout(() => setCopyStatus("idle"), 1800);
+    } catch {
+      setCopyStatus("failed");
+      setTimeout(() => setCopyStatus("idle"), 1800);
+    }
+  };
+
+  const handleOpenChange = async (nextOpen: boolean) => {
+    onOpenChange(nextOpen);
+    if (!nextOpen && refreshOnClose) {
+      setRefreshOnClose(false);
+      await onSuccess();
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -68,7 +105,7 @@ export function DeviceDialog({
         })) as Device;
         setGeneratedDevice(response);
         setSetupStep(true);
-        onSuccess(); // Refresh dashboard list in background
+        setRefreshOnClose(true);
       }
     } catch (error) {
       console.error("Failed to save device:", error);
@@ -81,7 +118,7 @@ export function DeviceDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         {!setupStep ? (
           <form onSubmit={handleSubmit}>
@@ -147,6 +184,48 @@ export function DeviceDialog({
                   Standard: 230V (Philippines/EU) · 120V (US) · 220V (older PH)
                 </p>
               </div>
+
+              {device && (
+                <div className="grid gap-2 rounded-md border bg-muted/40 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <Label className="m-0">Device Token</Label>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowToken((prev) => !prev)}
+                      >
+                        {showToken ? "Hide" : "Show"}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCopyToken}
+                        disabled={!currentToken}
+                      >
+                        Copy
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="rounded border bg-background px-3 py-2 font-mono text-xs break-all">
+                    {showToken
+                      ? currentToken
+                      : currentToken
+                        ? "••••••••••••••••••••••••••••••••"
+                        : "Token unavailable"}
+                  </div>
+                  {copyStatus === "copied" && (
+                    <p className="text-xs text-green-600">Token copied.</p>
+                  )}
+                  {copyStatus === "failed" && (
+                    <p className="text-xs text-destructive">
+                      Failed to copy token.
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
 
             <DialogFooter>
@@ -173,6 +252,27 @@ export function DeviceDialog({
               </DialogDescription>
             </DialogHeader>
             <div className="rounded-md bg-muted p-4">
+              <p className="text-sm font-medium mb-2">Device Token</p>
+              <div className="rounded border bg-black/10 px-3 py-2 font-mono text-xs break-all text-foreground mb-3">
+                {currentToken || "ERROR_NO_TOKEN"}
+              </div>
+              <div className="flex items-center gap-2 mb-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCopyToken}
+                  disabled={!currentToken}
+                >
+                  Copy Token
+                </Button>
+                {copyStatus === "copied" && (
+                  <span className="text-xs text-green-600">Copied.</span>
+                )}
+                {copyStatus === "failed" && (
+                  <span className="text-xs text-destructive">Copy failed.</span>
+                )}
+              </div>
               <p className="text-sm font-medium mb-2">
                 1. Open{" "}
                 <code className="text-xs bg-black/10 px-1 py-0.5 rounded">
@@ -197,9 +297,9 @@ export function DeviceDialog({
             </p>
             <DialogFooter className="mt-4">
               <Button
-                onClick={() => {
+                onClick={async () => {
                   setSetupStep(false);
-                  onOpenChange(false);
+                  await handleOpenChange(false);
                 }}
               >
                 Done

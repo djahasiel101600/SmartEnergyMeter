@@ -1,16 +1,16 @@
 # Stage 1 — Build the React/Vite app
-FROM node:20-alpine AS builder
+FROM node:20-bookworm-slim AS builder
 
 WORKDIR /app
 
 # Install dependencies (cached layer)
 COPY package.json package-lock.json* ./
-RUN npm ci
+RUN npm ci --include=optional
 
 # Copy source and build
 # VITE_ env vars must be provided at build time via --build-arg
 ARG VITE_API_URL=/api
-ARG VITE_WS_URL=ws://localhost/ws/energy/
+ARG VITE_WS_URL=/ws/energy/
 
 ENV VITE_API_URL=$VITE_API_URL \
     VITE_WS_URL=$VITE_WS_URL
