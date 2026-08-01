@@ -35,7 +35,9 @@ class DeviceSerializer(serializers.ModelSerializer):
                 'power': float(latest.power),
                 'energy': float(latest.energy),
                 'voltage': float(latest.voltage),
-                'current': float(latest.current)
+                'current': float(latest.current),
+                'power_factor': float(latest.power_factor),
+                'frequency': float(latest.frequency),
             }
         return None
 
