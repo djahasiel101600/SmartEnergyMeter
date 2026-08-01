@@ -1,3 +1,4 @@
+# serializers.py
 from rest_framework import serializers
 from .models import Device, EnergyReading, RateConfiguration, FirmwareVersion, OTAUpdate
 from django.utils import timezone
