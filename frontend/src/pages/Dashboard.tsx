@@ -46,7 +46,6 @@ import {
   CartesianGrid,
   Line,
   LineChart,
-  ReferenceArea,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
@@ -364,17 +363,22 @@ export function Dashboard() {
       ? powerHistory[powerHistory.length - 2].current
       : undefined;
 
-  // Spike times for ReferenceArea overlay
-  const spikeTimestamps: string[] = (anomalies?.power_spikes ?? []).map(
-    (s: any) => {
-      const d = new Date(s.timestamp);
-      return d.toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-      });
-    },
-  );
+  // Spike times for the live power chart overlay. Deduped since multiple
+  // spikes can fall in the same displayed second. Only kept if the spike
+  // timestamp actually falls within the currently plotted window, otherwise
+  // ReferenceLine would draw at the axis edge and mislead.
+  const plottedTimes = new Set(powerHistory.map((p) => p.time));
+  const spikeTimestamps: string[] = Array.from(
+    new Set(
+      (anomalies?.power_spikes ?? []).map((s: any) =>
+        new Date(s.timestamp).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        }),
+      ),
+    ),
+  ).filter((t) => plottedTimes.has(t));
 
   // Hourly chart: object {0..23} → flat array
   const hourlyChartData = Array.from({ length: 24 }, (_, h) => ({
@@ -732,6 +736,13 @@ export function Dashboard() {
                 {deviceStats?.average_power
                   ? ` · avg ${deviceStats.average_power.toFixed(1)} W`
                   : ""}
+                {spikeTimestamps.length > 0 && (
+                  <span className="text-red-500">
+                    {" "}
+                    · {spikeTimestamps.length} spike
+                    {spikeTimestamps.length > 1 ? "s" : ""} marked
+                  </span>
+                )}
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-4">
@@ -768,13 +779,17 @@ export function Dashboard() {
                         }}
                       />
                     )}
+                    {/* Vertical markers for detected power spikes. A
+                        ReferenceArea with equal x1/x2 on a categorical axis
+                        renders zero-width and is invisible, so spikes are
+                        marked with ReferenceLine instead. */}
                     {spikeTimestamps.map((t) => (
-                      <ReferenceArea
+                      <ReferenceLine
                         key={t}
-                        x1={t}
-                        x2={t}
-                        fill="#ef4444"
-                        fillOpacity={0.18}
+                        x={t}
+                        stroke="#ef4444"
+                        strokeWidth={2}
+                        strokeOpacity={0.6}
                       />
                     ))}
                     <Line
@@ -1269,11 +1284,11 @@ export function Dashboard() {
                         <div className="w-12 h-1.5 rounded-full bg-muted overflow-hidden">
                           <div
                             className="h-full bg-blue-500 rounded-full"
-                            style={{ width: `${app.confidence * 100}%` }}
+                            style={{ width: `${app.confidence}%` }}
                           />
                         </div>
                         <span className="text-muted-foreground w-6 text-right">
-                          {(app.confidence * 100).toFixed(0)}%
+                          {app.confidence.toFixed(0)}%
                         </span>
                       </div>
                     </div>
