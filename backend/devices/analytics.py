@@ -1,4 +1,5 @@
 """
+Analyrics.py
 Analytics utilities for energy consumption analysis.
 Includes cost projections, usage patterns, comparisons, anomaly detection, and appliance detection.
 """
